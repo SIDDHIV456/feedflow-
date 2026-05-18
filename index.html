@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FeedFlow - Personalized News Feed Curator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="container">
+
+    <!-- Hero Section -->
+    <div class="hero">
+      <h1>FeedFlow</h1>
+      <p>A personalized news feed system using hash table indexing and LRU cache optimization.</p>
+    </div>
+
+    <!-- User Request Simulation Section -->
+    <div class="card request-section">
+      <h2>User Request Simulation</h2>
+      <p style="color:#666; margin-bottom:15px;">Click a user request or run automation to simulate traffic and cache behavior</p>
+      <p class="shortcuts-hint">Shortcuts: <kbd>1</kbd>–<kbd>4</kbd> request users · <kbd>Space</kbd> start/stop automation · <kbd>R</kbd> reset session</p>
+      <div class="buttons">
+        <button class="user-btn" data-user="U1" onclick="requestFeed('U1')">Request U1</button>
+        <button class="user-btn" data-user="U2" onclick="requestFeed('U2')">Request U2</button>
+        <button class="user-btn" data-user="U3" onclick="requestFeed('U3')">Request U3</button>
+        <button class="user-btn" data-user="U4" onclick="requestFeed('U4')">Request U4</button>
+        <button type="button" class="btn-reset" onclick="resetSession()">↺ Reset Session</button>
+      </div>
+      <div class="automation-panel">
+        <div class="automation-controls">
+          <button id="autoStartBtn" class="btn-auto" onclick="startAutomation()">▶ Start Automation</button>
+          <button id="autoStopBtn" class="btn-auto btn-stop" onclick="stopAutomation()" disabled>■ Stop</button>
+          <label class="speed-label" for="autoSpeed">
+            Speed:
+            <select id="autoSpeed" onchange="onSpeedChange()">
+              <option value="2500">Slow (2.5s)</option>
+              <option value="1500" selected>Normal (1.5s)</option>
+              <option value="800">Fast (0.8s)</option>
+            </select>
+          </label>
+        </div>
+        <div class="custom-sequence-row">
+          <label class="sequence-label" for="customSequence">Custom sequence</label>
+          <input type="text" id="customSequence" class="sequence-input" placeholder="U1,U2,U3,U4,U1 (empty = default demo)" onchange="onCustomSequenceChange()" />
+          <button type="button" class="btn-apply" onclick="applyCustomSequence()">Apply</button>
+        </div>
+        <p id="autoStatus" class="auto-status">Automation idle — sequence fills cache, triggers LRU eviction, then replays hits</p>
+      </div>
+      <div id="cacheStatus" class="cache-status"></div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid-3">
+
+      <!-- LRU Cache Visualization -->
+      <div class="card">
+        <h2>LRU Cache Visualization</h2>
+        <div class="cache-size-control">
+          <label class="speed-label" for="cacheSizeSelect">Cache frames:</label>
+          <select id="cacheSizeSelect" onchange="onCacheSizeChange()">
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+          </select>
+          <span id="cacheSizeLabel" class="cache-size-label">3 frames</span>
+        </div>
+        <div class="cache-container" id="cacheDisplay"></div>
+      </div>
+
+      <!-- Statistics Dashboard -->
+      <div class="card stats-dashboard-card">
+        <h2>Statistics Dashboard</h2>
+        <div class="stats-grid stats-grid-extended">
+          <div class="stat-box">
+            <div class="label">Total Requests</div>
+            <div class="value" id="total">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">Cache Hits</div>
+            <div class="value" id="hits">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">Cache Misses</div>
+            <div class="value" id="misses">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">Hit Ratio</div>
+            <div class="value" id="ratio">0%</div>
+          </div>
+          <div class="stat-box stat-box-alt">
+            <div class="label">Cache Fill</div>
+            <div class="value" id="cacheFill">0%</div>
+          </div>
+          <div class="stat-box stat-box-alt">
+            <div class="label">Articles Served</div>
+            <div class="value" id="articlesServed">0</div>
+          </div>
+          <div class="stat-box stat-box-alt">
+            <div class="label">Most Active User</div>
+            <div class="value value-sm" id="mostActiveUser">—</div>
+          </div>
+          <div class="stat-box stat-box-alt">
+            <div class="label">Unique Topics</div>
+            <div class="value" id="uniqueTopics">0</div>
+          </div>
+        </div>
+        <div class="user-prefs-section">
+          <h3 class="prefs-heading">User Preferences</h3>
+          <p class="prefs-hint">Topics each user follows — updated via the AI assistant below</p>
+          <div id="userPrefsList" class="user-prefs-list"></div>
+        </div>
+      </div>
+
+      <!-- DAA Topic Index -->
+      <div class="card">
+        <h2>DAA Topic Index (Hash Table)</h2>
+        <div id="topicIndex"></div>
+      </div>
+
+    </div>
+
+    <!-- AI Interest Assistant -->
+    <div class="card chat-card">
+      <h2>AI Interest Assistant</h2>
+      <p class="chat-intro">Tell me what you like — I'll update user preferences and personalize feeds. Try: <em>"U2 loves tech and AI"</em> or <em>"I'm into sports and movies"</em></p>
+      <div class="chat-toolbar">
+        <label class="speed-label" for="chatUserSelect">Updating profile:</label>
+        <select id="chatUserSelect">
+          <option value="U1">U1 — Alex</option>
+          <option value="U2" selected>U2 — Sam</option>
+          <option value="U3">U3 — Jordan</option>
+          <option value="U4">U4 — Riley</option>
+        </select>
+        <button type="button" class="btn-chat-clear" onclick="clearChat()">Clear chat</button>
+      </div>
+      <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+      <form id="chatForm" class="chat-form" onsubmit="submitChat(event)">
+        <input type="text" id="chatInput" class="chat-input" placeholder="e.g. I like cricket, Marvel movies, and crypto..." autocomplete="off" />
+        <button type="submit" class="btn-chat-send">Send</button>
+      </form>
+      <p class="chat-disclaimer">Browser-only assistant — uses keyword understanding, no external API.</p>
+    </div>
+
+    <!-- Feed Display Section -->
+    <div class="card">
+      <h2>Current Feed Display</h2>
+      <div id="feedDisplay">
+        <p style="color:#888; text-align:center; padding:20px;">No feed generated yet. Click a user request above.</p>
+      </div>
+    </div>
+
+    <!-- System Logs Panel -->
+    <div class="card">
+      <h2>System Logs Panel</h2>
+      <div class="logs" id="logs">
+        <div class="log-item" style="color:#888;">System initialized. Waiting for requests...</div>
+      </div>
+    </div>
+
+    <!-- Complexity Comparison Table -->
+    <div class="card">
+      <h2>Complexity Comparison</h2>
+      <table class="complexity-table">
+        <thead>
+          <tr>
+            <th>Algorithm</th>
+            <th>Time Complexity</th>
+            <th>Performance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Linear Search</td>
+            <td><span class="complexity-badge complexity-bad">O(n)</span></td>
+            <td>Slow for large datasets</td>
+          </tr>
+          <tr>
+            <td>Hash Table Indexing</td>
+            <td><span class="complexity-badge complexity-good">O(1)</span></td>
+            <td>Instant lookup</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- About Project Section -->
+    <div class="card about-section">
+      <h3>About This Project</h3>
+      <p>This project demonstrates key Data Structures and Algorithms (DAA) concepts applied to real-world scenarios:</p>
+      <ul>
+        <li><strong>DAA Input Enhancement:</strong> Articles are indexed using a hash table based on topics, enabling O(1) lookup time instead of O(n) linear search.</li>
+        <li><strong>Space-Time Tradeoff:</strong> We use additional memory (cache) to store frequently accessed data, trading space for faster access time.</li>
+        <li><strong>LRU Page Replacement:</strong> When the cache is full, the Least Recently Used item is evicted, mimicking operating system memory management algorithms.</li>
+        <li><strong>Cache Optimization:</strong> The system tracks cache hits and misses to demonstrate the effectiveness of caching strategies.</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
